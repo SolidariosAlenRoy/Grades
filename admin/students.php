@@ -593,12 +593,6 @@ $students = $pdo->query("
             <div class="menu-item">
                 <a href="courses.php">Courses</a>
             </div>
-            <div class="menu-item">
-                <a href="grades.php">Grades</a>
-            </div>
-            <div class="menu-item">
-                <a href="gwa.php">GWA</a>
-            </div>
         </div>
 
         <div class="content">

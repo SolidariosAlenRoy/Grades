@@ -5,22 +5,24 @@ require_once 'config/database.php';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['action'])) {
         if ($_POST['action'] === 'add') {
-            $stmt = $pdo->prepare("INSERT INTO faculty (faculty_id, lname, fname, mi, course_id) VALUES (?, ?, ?, ?, ?)");
-            $stmt->execute([
-                $_POST['faculty_id'],
-                $_POST['lname'],
-                $_POST['fname'],
-                $_POST['mi'],
-                $_POST['course_id']
-            ]);
-        } elseif ($_POST['action'] === 'edit') {
-            $stmt = $pdo->prepare("UPDATE faculty SET faculty_id = ?, lname = ?, fname = ?, mi = ?, course_id = ? WHERE id = ?");
+            $stmt = $pdo->prepare("INSERT INTO faculty (faculty_id, lname, fname, mi, course_id, email) VALUES (?, ?, ?, ?, ?, ?)");
             $stmt->execute([
                 $_POST['faculty_id'],
                 $_POST['lname'],
                 $_POST['fname'],
                 $_POST['mi'],
                 $_POST['course_id'],
+                $_POST['email']
+            ]);
+        } elseif ($_POST['action'] === 'edit') {
+            $stmt = $pdo->prepare("UPDATE faculty SET faculty_id = ?, lname = ?, fname = ?, mi = ?, course_id = ?, email = ? WHERE id = ?");
+            $stmt->execute([
+                $_POST['faculty_id'],
+                $_POST['lname'],
+                $_POST['fname'],
+                $_POST['mi'],
+                $_POST['course_id'],
+                $_POST['email'],
                 $_POST['id']
             ]);
         } elseif ($_POST['action'] === 'delete') {
@@ -370,6 +372,93 @@ $faculty = $pdo->query("
                 width: 200px;
             }
         }
+
+        /* Accordion Styles */
+        .course-accordion {
+            position: relative;
+            display: flex;
+            align-items: center;
+            width: 100%;
+        }
+        
+        .course-preview {
+            display: inline-block;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 80%;
+            padding: 5px 0;
+            color: #2c3e50;
+            flex-grow: 1;
+        }
+        
+        .course-toggle {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-left: 10px;
+            color: white;
+            background-color: #3498db;
+            width: 28px;
+            height: 28px;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: bold;
+            transition: all 0.2s ease;
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .course-toggle:hover {
+            background-color: #2980b9;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+        
+        .course-toggle:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .course-full {
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            background-color: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+            z-index: 10;
+            width: 100%;
+            min-width: 250px;
+            max-height: 250px;
+            overflow-y: auto;
+            border: 1px solid #e1e1e1;
+            margin-top: 10px;
+        }
+        
+        .course-full div {
+            padding: 10px 12px;
+            border-bottom: 1px solid #eee;
+            color: #2c3e50;
+            font-size: 14px;
+        }
+        
+        .course-full div:last-child {
+            border-bottom: none;
+        }
+        
+        .show-courses {
+            display: block;
+            animation: fadeIn 0.25s ease-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
     </style>
 </head>
 <body>
@@ -394,12 +483,6 @@ $faculty = $pdo->query("
             </div>
             <div class="menu-item">
                 <a href="courses.php">Courses</a>
-            </div>
-            <div class="menu-item">
-                <a href="grades.php">Grades</a>
-            </div>
-            <div class="menu-item">
-                <a href="gwa.php">GWA</a>
             </div>
         </div>
 
@@ -430,6 +513,12 @@ $faculty = $pdo->query("
                             <input type="text" id="mi" name="mi" maxlength="1">
                         </div>
                         <div class="form-group">
+                            <label for="email">Email Address</label>
+                            <input type="email" id="email" name="email" required>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
                             <label for="course_id">Course</label>
                             <select id="course_id" name="course_id">
                                 <option value="">Select Course</option>
@@ -450,7 +539,8 @@ $faculty = $pdo->query("
                         <tr>
                             <th>Faculty ID</th>
                             <th>Name</th>
-                            <th>Course</th>
+                            <th>Email</th>
+                            <th>Courses</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
@@ -459,7 +549,23 @@ $faculty = $pdo->query("
                             <tr>
                                 <td><?php echo htmlspecialchars($member['faculty_id']); ?></td>
                                 <td><?php echo htmlspecialchars($member['fname'] . ' ' . $member['mi'] . '. ' . $member['lname']); ?></td>
-                                <td><?php echo htmlspecialchars($member['course_name'] ?? 'Not Assigned'); ?></td>
+                                <td><?php echo htmlspecialchars($member['email']); ?></td>
+                                <td>
+                                    <?php if(!empty($member['course_name'])): ?>
+                                        <div class="course-accordion">
+                                            <span class="course-preview">
+                                                <?php echo htmlspecialchars($member['course_name']); ?>
+                                            </span>
+                                            <button type="button" class="course-toggle" title="View course details" onclick="toggleCourses(this)">+</button>
+                                            <div class="course-full">
+                                                <h4 style="margin-bottom: 10px; color: #3498db; border-bottom: 1px solid #eee; padding-bottom: 8px;">Course Details</h4>
+                                                <div><?php echo htmlspecialchars($member['course_name']); ?></div>
+                                            </div>
+                                        </div>
+                                    <?php else: ?>
+                                        <span style="color: #777;">Not Assigned</span>
+                                    <?php endif; ?>
+                                </td>
                                 <td>
                                     <button class="edit-btn" onclick="editFaculty(<?php echo htmlspecialchars(json_encode($member)); ?>)">Edit</button>
                                     <button class="delete-btn" onclick="deleteFaculty(<?php echo $member['id']; ?>)">Delete</button>
@@ -499,6 +605,12 @@ $faculty = $pdo->query("
                         <label for="edit_mi">Middle Initial</label>
                         <input type="text" id="edit_mi" name="mi" maxlength="1">
                     </div>
+                    <div class="form-group">
+                        <label for="edit_email">Email Address</label>
+                        <input type="email" id="edit_email" name="email" required>
+                    </div>
+                </div>
+                <div class="form-row">
                     <div class="form-group">
                         <label for="edit_course_id">Course</label>
                         <select id="edit_course_id" name="course_id">
@@ -564,6 +676,7 @@ $faculty = $pdo->query("
             document.getElementById('edit_lname').value = member.lname;
             document.getElementById('edit_fname').value = member.fname;
             document.getElementById('edit_mi').value = member.mi;
+            document.getElementById('edit_email').value = member.email;
             document.getElementById('edit_course_id').value = member.course_id || '';
 
             // Display the modal
@@ -583,6 +696,43 @@ $faculty = $pdo->query("
                 form.submit();
             }
         }
+
+        function toggleCourses(button) {
+            const courseFull = button.nextElementSibling;
+            
+            // Close any other open course listings
+            document.querySelectorAll('.course-full.show-courses').forEach(element => {
+                if (element !== courseFull) {
+                    element.classList.remove('show-courses');
+                    const toggleBtn = element.previousElementSibling;
+                    if (toggleBtn && toggleBtn.classList.contains('course-toggle')) {
+                        toggleBtn.textContent = '+';
+                    }
+                }
+            });
+            
+            // Toggle the current one
+            if (courseFull.classList.contains('show-courses')) {
+                courseFull.classList.remove('show-courses');
+                button.textContent = '+';
+            } else {
+                courseFull.classList.add('show-courses');
+                button.textContent = '−'; // Using minus sign
+            }
+        }
+        
+        // Close any open course listings when clicking elsewhere on the page
+        document.addEventListener('click', function(event) {
+            if (!event.target.matches('.course-toggle')) {
+                document.querySelectorAll('.course-full.show-courses').forEach(element => {
+                    element.classList.remove('show-courses');
+                    const toggleBtn = element.previousElementSibling;
+                    if (toggleBtn && toggleBtn.classList.contains('course-toggle')) {
+                        toggleBtn.textContent = '+';
+                    }
+                });
+            }
+        }, true);
     </script>
 </body>
 </html> 

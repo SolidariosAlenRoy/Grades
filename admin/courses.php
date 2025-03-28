@@ -388,12 +388,6 @@ $courses = $pdo->query("SELECT * FROM course")->fetchAll(PDO::FETCH_ASSOC);
             <div class="menu-item active">
                 <a href="courses.php">Courses</a>
             </div>
-            <div class="menu-item">
-                <a href="grades.php">Grades</a>
-            </div>
-            <div class="menu-item">
-                <a href="gwa.php">GWA</a>
-            </div>
         </div>
 
         <div class="content">
