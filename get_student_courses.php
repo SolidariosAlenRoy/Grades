@@ -7,7 +7,7 @@ if(isset($_GET['student_id']) && !empty($_GET['student_id'])) {
     $studentId = $_GET['student_id'];
     
     try {
-        $stmt = $pdo->prepare("SELECT course_id FROM student_course WHERE student_id = ?");
+        $stmt = $conn->prepare("SELECT course_id FROM student_course WHERE student_id = ?");
         $stmt->execute([$studentId]);
         $courseIds = $stmt->fetchAll(PDO::FETCH_COLUMN);
         

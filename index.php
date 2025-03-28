@@ -2,14 +2,13 @@
 require_once 'config/database.php';
 
 // Get counts for dashboard
-$stmt = $pdo->query("SELECT COUNT(*) as count FROM student");
+$stmt = $conn->query("SELECT COUNT(*) as count FROM student");
 $studentCount = $stmt->fetch(PDO::FETCH_ASSOC)['count'];
 
-$stmt = $pdo->query("SELECT COUNT(*) as count FROM faculty");
+$stmt = $conn->query("SELECT COUNT(*) as count FROM faculty");
 $facultyCount = $stmt->fetch(PDO::FETCH_ASSOC)['count'];
 
-$stmt = $pdo->query("SELECT COUNT(*) as count FROM course");
-
+$stmt = $conn->query("SELECT COUNT(*) as count FROM course");
 $courseCount = $stmt->fetch(PDO::FETCH_ASSOC)['count'];
 ?>
 

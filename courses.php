@@ -5,27 +5,27 @@ require_once 'config/database.php';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['action'])) {
         if ($_POST['action'] === 'add') {
-            $stmt = $pdo->prepare("INSERT INTO course (course_name, course_description) VALUES (?, ?)");
+            $stmt = $conn->prepare("INSERT INTO course (course_name, course_description) VALUES (?, ?)");
             $stmt->execute([
                 $_POST['course_name'],
                 $_POST['course_description']
             ]);
         } elseif ($_POST['action'] === 'edit') {
-            $stmt = $pdo->prepare("UPDATE course SET course_name = ?, course_description = ? WHERE id = ?");
+            $stmt = $conn->prepare("UPDATE course SET course_name = ?, course_description = ? WHERE id = ?");
             $stmt->execute([
                 $_POST['course_name'],
                 $_POST['course_description'],
                 $_POST['id']
             ]);
         } elseif ($_POST['action'] === 'delete') {
-            $stmt = $pdo->prepare("DELETE FROM course WHERE id = ?");
+            $stmt = $conn->prepare("DELETE FROM course WHERE id = ?");
             $stmt->execute([$_POST['id']]);
         }
     }
 }
 
 // Get all courses
-$courses = $pdo->query("SELECT * FROM course")->fetchAll(PDO::FETCH_ASSOC);
+$courses = $conn->query("SELECT * FROM course")->fetchAll(PDO::FETCH_ASSOC);
 ?>
 
 <!DOCTYPE html>

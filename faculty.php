@@ -5,41 +5,113 @@ require_once 'config/database.php';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['action'])) {
         if ($_POST['action'] === 'add') {
-            $stmt = $pdo->prepare("INSERT INTO faculty (faculty_id, lname, fname, mi, course_id, email) VALUES (?, ?, ?, ?, ?, ?)");
-            $stmt->execute([
-                $_POST['faculty_id'],
-                $_POST['lname'],
-                $_POST['fname'],
-                $_POST['mi'],
-                $_POST['course_id'],
-                $_POST['email']
-            ]);
+            // Begin transaction
+            $conn->beginTransaction();
+            try {
+                // First insert the faculty member
+                $stmt = $conn->prepare("INSERT INTO faculty (faculty_id, lname, fname, mi, email) VALUES (?, ?, ?, ?, ?)");
+                $stmt->execute([
+                    $_POST['faculty_id'],
+                    $_POST['lname'],
+                    $_POST['fname'],
+                    $_POST['mi'],
+                    $_POST['email']
+                ]);
+                
+                $facultyId = $conn->lastInsertId();
+                
+                // Then insert course relationships if courses were selected
+                if (isset($_POST['course_ids']) && is_array($_POST['course_ids'])) {
+                    $stmt = $conn->prepare("INSERT INTO faculty_course (faculty_id, course_id) VALUES (?, ?)");
+                    foreach($_POST['course_ids'] as $courseId) {
+                        $stmt->execute([$facultyId, $courseId]);
+                    }
+                }
+                
+                $conn->commit();
+            } catch(Exception $e) {
+                $conn->rollBack();
+                echo "Error: " . $e->getMessage();
+            }
         } elseif ($_POST['action'] === 'edit') {
-            $stmt = $pdo->prepare("UPDATE faculty SET faculty_id = ?, lname = ?, fname = ?, mi = ?, course_id = ?, email = ? WHERE id = ?");
-            $stmt->execute([
-                $_POST['faculty_id'],
-                $_POST['lname'],
-                $_POST['fname'],
-                $_POST['mi'],
-                $_POST['course_id'],
-                $_POST['email'],
-                $_POST['id']
-            ]);
+            // Begin transaction
+            $conn->beginTransaction();
+            try {
+                // First update the faculty member
+                $stmt = $conn->prepare("UPDATE faculty SET faculty_id = ?, lname = ?, fname = ?, mi = ?, email = ? WHERE id = ?");
+                $stmt->execute([
+                    $_POST['faculty_id'],
+                    $_POST['lname'],
+                    $_POST['fname'],
+                    $_POST['mi'],
+                    $_POST['email'],
+                    $_POST['id']
+                ]);
+                
+                // Delete existing course relationships
+                $stmt = $conn->prepare("DELETE FROM faculty_course WHERE faculty_id = ?");
+                $stmt->execute([$_POST['id']]);
+                
+                // Insert new course relationships
+                if (isset($_POST['course_ids']) && is_array($_POST['course_ids'])) {
+                    $stmt = $conn->prepare("INSERT INTO faculty_course (faculty_id, course_id) VALUES (?, ?)");
+                    foreach($_POST['course_ids'] as $courseId) {
+                        $stmt->execute([$_POST['id'], $courseId]);
+                    }
+                }
+                
+                $conn->commit();
+            } catch(Exception $e) {
+                $conn->rollBack();
+                echo "Error: " . $e->getMessage();
+            }
         } elseif ($_POST['action'] === 'delete') {
-            $stmt = $pdo->prepare("DELETE FROM faculty WHERE id = ?");
-            $stmt->execute([$_POST['id']]);
+            // Begin transaction
+            $conn->beginTransaction();
+            try {
+                // First delete course relationships
+                $stmt = $conn->prepare("DELETE FROM faculty_course WHERE faculty_id = ?");
+                $stmt->execute([$_POST['id']]);
+                
+                // Then delete the faculty member
+                $stmt = $conn->prepare("DELETE FROM faculty WHERE id = ?");
+                $stmt->execute([$_POST['id']]);
+                
+                $conn->commit();
+            } catch(Exception $e) {
+                $conn->rollBack();
+                echo "Error: " . $e->getMessage();
+            }
         }
     }
 }
 
-// Get all courses for dropdown
-$courses = $pdo->query("SELECT * FROM course")->fetchAll(PDO::FETCH_ASSOC);
+// Create faculty_course junction table if it doesn't exist
+try {
+    $conn->exec("
+        CREATE TABLE IF NOT EXISTS faculty_course (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            faculty_id INT NOT NULL,
+            course_id INT NOT NULL,
+            FOREIGN KEY (faculty_id) REFERENCES faculty(id) ON DELETE CASCADE,
+            FOREIGN KEY (course_id) REFERENCES course(id) ON DELETE CASCADE,
+            UNIQUE KEY unique_faculty_course (faculty_id, course_id)
+        )
+    ");
+} catch(Exception $e) {
+    echo "Error creating table: " . $e->getMessage();
+}
 
-// Get all faculty members
-$faculty = $pdo->query("
-    SELECT f.*, c.course_name 
+// Get all courses for dropdown
+$courses = $conn->query("SELECT * FROM course")->fetchAll(PDO::FETCH_ASSOC);
+
+// Get all faculty members with their courses
+$faculty = $conn->query("
+    SELECT f.*, GROUP_CONCAT(c.course_name SEPARATOR ', ') as courses
     FROM faculty f 
-    LEFT JOIN course c ON f.course_id = c.id
+    LEFT JOIN faculty_course fc ON f.id = fc.faculty_id
+    LEFT JOIN course c ON fc.course_id = c.id
+    GROUP BY f.id
 ")->fetchAll(PDO::FETCH_ASSOC);
 ?>
 
@@ -316,17 +388,39 @@ $faculty = $pdo->query("
             height: 100%;
             background-color: rgba(0, 0, 0, 0.5);
             z-index: 1000;
+            overflow: hidden;
         }
 
         .modal-content {
             position: relative;
             background-color: #fff;
-            margin: 7% auto;
+            margin: 5% auto;
             padding: 30px;
-            width: 50%;
+            width: 60%;
+            max-width: 800px;
             border-radius: 10px;
             box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2);
             animation: modalFadeIn 0.3s ease;
+            max-height: 85vh;
+            overflow-y: auto;
+        }
+
+        .modal-content::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .modal-content::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+
+        .modal-content::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 4px;
+        }
+
+        .modal-content::-webkit-scrollbar-thumb:hover {
+            background: #555;
         }
 
         @keyframes modalFadeIn {
@@ -349,6 +443,7 @@ $faculty = $pdo->query("
             color: #666;
             cursor: pointer;
             transition: color 0.3s;
+            z-index: 1001;
         }
 
         .close:hover {
@@ -360,17 +455,76 @@ $faculty = $pdo->query("
             color: #2c3e50;
             font-size: 22px;
             font-weight: 600;
+            padding-right: 40px;
+        }
+
+        .modal .form-row {
+            margin-bottom: 20px;
+        }
+
+        .modal .form-group {
+            margin-bottom: 15px;
+        }
+
+        .modal .checkbox-container {
+            max-height: 250px;
+            margin-top: 10px;
         }
 
         @media (max-width: 768px) {
             .modal-content {
                 width: 90%;
                 margin: 10% auto;
+                padding: 20px;
+                max-height: 90vh;
             }
             
-            .sidebar {
-                width: 200px;
+            .modal .form-row {
+                flex-direction: column;
             }
+            
+            .modal .form-group {
+                width: 100%;
+            }
+        }
+
+        /* Checkbox Styles */
+        .checkbox-container {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            padding: 12px;
+            border-radius: 6px;
+            background-color: #f9f9f9;
+        }
+        
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            padding: 6px 8px;
+            border-radius: 4px;
+            transition: background-color 0.2s;
+        }
+        
+        .checkbox-item:hover {
+            background-color: #edf2f7;
+        }
+        
+        .checkbox-item input[type="checkbox"] {
+            margin-right: 10px;
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+        }
+        
+        .checkbox-item label {
+            cursor: pointer;
+            user-select: none;
+            font-size: 14px;
+            color: #333;
         }
 
         /* Accordion Styles */
@@ -519,13 +673,15 @@ $faculty = $pdo->query("
                     </div>
                     <div class="form-row">
                         <div class="form-group">
-                            <label for="course_id">Course</label>
-                            <select id="course_id" name="course_id">
-                                <option value="">Select Course</option>
+                            <label>Courses</label>
+                            <div class="checkbox-container">
                                 <?php foreach ($courses as $course): ?>
-                                    <option value="<?php echo $course['id']; ?>"><?php echo $course['course_name']; ?></option>
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="course_<?php echo $course['id']; ?>" name="course_ids[]" value="<?php echo $course['id']; ?>">
+                                        <label for="course_<?php echo $course['id']; ?>"><?php echo $course['course_name']; ?></label>
+                                    </div>
                                 <?php endforeach; ?>
-                            </select>
+                            </div>
                         </div>
                     </div>
                     <button type="submit" class="btn">Add Faculty Member</button>
@@ -551,15 +707,24 @@ $faculty = $pdo->query("
                                 <td><?php echo htmlspecialchars($member['fname'] . ' ' . $member['mi'] . '. ' . $member['lname']); ?></td>
                                 <td><?php echo htmlspecialchars($member['email']); ?></td>
                                 <td>
-                                    <?php if(!empty($member['course_name'])): ?>
+                                    <?php if(!empty($member['courses'])): ?>
                                         <div class="course-accordion">
                                             <span class="course-preview">
-                                                <?php echo htmlspecialchars($member['course_name']); ?>
+                                                <?php 
+                                                    $coursesArray = explode(', ', $member['courses']);
+                                                    $courseCount = count($coursesArray);
+                                                    echo htmlspecialchars($coursesArray[0]);
+                                                    if($courseCount > 1) {
+                                                        echo " <small>+" . ($courseCount - 1) . " more</small>";
+                                                    }
+                                                ?>
                                             </span>
-                                            <button type="button" class="course-toggle" title="View course details" onclick="toggleCourses(this)">+</button>
+                                            <button type="button" class="course-toggle" title="View all courses" onclick="toggleCourses(this)">+</button>
                                             <div class="course-full">
-                                                <h4 style="margin-bottom: 10px; color: #3498db; border-bottom: 1px solid #eee; padding-bottom: 8px;">Course Details</h4>
-                                                <div><?php echo htmlspecialchars($member['course_name']); ?></div>
+                                                <h4 style="margin-bottom: 10px; color: #3498db; border-bottom: 1px solid #eee; padding-bottom: 8px;">Assigned Courses</h4>
+                                                <?php foreach($coursesArray as $course): ?>
+                                                    <div><?php echo htmlspecialchars($course); ?></div>
+                                                <?php endforeach; ?>
                                             </div>
                                         </div>
                                     <?php else: ?>
@@ -612,16 +777,20 @@ $faculty = $pdo->query("
                 </div>
                 <div class="form-row">
                     <div class="form-group">
-                        <label for="edit_course_id">Course</label>
-                        <select id="edit_course_id" name="course_id">
-                            <option value="">Select Course</option>
+                        <label>Courses</label>
+                        <div class="checkbox-container">
                             <?php foreach ($courses as $course): ?>
-                                <option value="<?php echo $course['id']; ?>"><?php echo $course['course_name']; ?></option>
+                                <div class="checkbox-item">
+                                    <input type="checkbox" id="edit_course_<?php echo $course['id']; ?>" name="course_ids[]" value="<?php echo $course['id']; ?>">
+                                    <label for="edit_course_<?php echo $course['id']; ?>"><?php echo $course['course_name']; ?></label>
+                                </div>
                             <?php endforeach; ?>
-                        </select>
+                        </div>
                     </div>
                 </div>
-                <button type="submit" class="btn">Update Faculty Member</button>
+                <div class="form-row" style="justify-content: flex-end;">
+                    <button type="submit" class="btn">Update Faculty Member</button>
+                </div>
             </form>
         </div>
     </div>
@@ -677,8 +846,26 @@ $faculty = $pdo->query("
             document.getElementById('edit_fname').value = member.fname;
             document.getElementById('edit_mi').value = member.mi;
             document.getElementById('edit_email').value = member.email;
-            document.getElementById('edit_course_id').value = member.course_id || '';
-
+            
+            // Reset all checkboxes
+            document.querySelectorAll('input[id^="edit_course_"]').forEach(checkbox => {
+                checkbox.checked = false;
+            });
+            
+            // Fetch current courses for this faculty member
+            fetch(`get_faculty_courses.php?faculty_id=${member.id}`)
+                .then(response => response.json())
+                .then(data => {
+                    // Check the checkboxes for the courses this faculty member is assigned to
+                    data.forEach(courseId => {
+                        const checkbox = document.getElementById(`edit_course_${courseId}`);
+                        if (checkbox) {
+                            checkbox.checked = true;
+                        }
+                    });
+                })
+                .catch(error => console.error('Error fetching courses:', error));
+            
             // Display the modal
             modal.style.display = "block";
         }

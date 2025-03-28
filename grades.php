@@ -42,7 +42,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $grade_equivalent = getGrade($numeric_grade);
             $remarks = ($numeric_grade < 74.50) ? "Failed" : "Passed";
 
-            $stmt = $pdo->prepare("INSERT INTO grade (
+            $stmt = $conn->prepare("INSERT INTO grade (
                 student_id, course_id, faculty_id, term, semester,
                 assignments, quiz, seatwork, class_participation, attendance,
                 project, lab_exercise, exam, numeric_grade, grade_equivalent, remarks
@@ -80,7 +80,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $remarks = ($numeric_grade < 74.50) ? "Failed" : "Passed";
 
             // Update the grade in the database
-            $stmt = $pdo->prepare("UPDATE grade SET 
+            $stmt = $conn->prepare("UPDATE grade SET 
                 student_id = ?, 
                 course_id = ?, 
                 faculty_id = ?, 
@@ -126,10 +126,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-$students = $pdo->query("SELECT * FROM student ORDER BY lname")->fetchAll(PDO::FETCH_ASSOC);
-$courses = $pdo->query("SELECT * FROM course ORDER BY course_name")->fetchAll(PDO::FETCH_ASSOC);
-$faculty = $pdo->query("SELECT * FROM faculty ORDER BY lname")->fetchAll(PDO::FETCH_ASSOC);
-$grades = $pdo->query("SELECT g.*, s.student_id as student_number, 
+$students = $conn->query("SELECT * FROM student ORDER BY lname")->fetchAll(PDO::FETCH_ASSOC);
+$courses = $conn->query("SELECT * FROM course ORDER BY course_name")->fetchAll(PDO::FETCH_ASSOC);
+$faculty = $conn->query("SELECT * FROM faculty ORDER BY lname")->fetchAll(PDO::FETCH_ASSOC);
+$grades = $conn->query("SELECT g.*, s.student_id as student_number, 
     CONCAT(s.fname, ' ', s.mi, '. ', s.lname) as student_name,
     c.course_name, CONCAT(f.fname, ' ', f.mi, '. ', f.lname) as faculty_name
     FROM grade g JOIN student s ON g.student_id = s.id

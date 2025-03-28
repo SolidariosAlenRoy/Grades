@@ -15,12 +15,12 @@ function getGrade($grade) {
 }
 
 // Get all students for dropdown
-$students = $pdo->query("SELECT * FROM student ORDER BY lname")->fetchAll(PDO::FETCH_ASSOC);
+$students = $conn->query("SELECT * FROM student ORDER BY lname")->fetchAll(PDO::FETCH_ASSOC);
 
 // Handle student selection
 if (isset($_GET['student_id'])) {
     // Get student details
-    $stmt = $pdo->prepare("
+    $stmt = $conn->prepare("
         SELECT s.*, c.course_name 
         FROM student s 
         LEFT JOIN course c ON s.course_id = c.id 
@@ -30,7 +30,7 @@ if (isset($_GET['student_id'])) {
     $student = $stmt->fetch(PDO::FETCH_ASSOC);
 
     // Get student grades
-    $stmt = $pdo->prepare("
+    $stmt = $conn->prepare("
         SELECT g.*, c.course_name,
                CONCAT(f.fname, ' ', f.mi, '. ', f.lname) as faculty_name
         FROM grade g

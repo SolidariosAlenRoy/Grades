@@ -6,10 +6,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['action'])) {
         if ($_POST['action'] === 'add') {
             // Begin transaction
-            $pdo->beginTransaction();
+            $conn->beginTransaction();
             try {
                 // First insert the student
-                $stmt = $pdo->prepare("INSERT INTO student (student_id, lname, fname, mi) VALUES (?, ?, ?, ?)");
+                $stmt = $conn->prepare("INSERT INTO student (student_id, lname, fname, mi) VALUES (?, ?, ?, ?)");
                 $stmt->execute([
                     $_POST['student_id'],
                     $_POST['lname'],
@@ -17,27 +17,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $_POST['mi']
                 ]);
                 
-                $studentId = $pdo->lastInsertId();
+                $studentId = $conn->lastInsertId();
                 
                 // Then insert course relationships if courses were selected
                 if (isset($_POST['course_ids']) && is_array($_POST['course_ids'])) {
-                    $stmt = $pdo->prepare("INSERT INTO student_course (student_id, course_id) VALUES (?, ?)");
+                    $stmt = $conn->prepare("INSERT INTO student_course (student_id, course_id) VALUES (?, ?)");
                     foreach($_POST['course_ids'] as $courseId) {
                         $stmt->execute([$studentId, $courseId]);
                     }
                 }
                 
-                $pdo->commit();
+                $conn->commit();
             } catch(Exception $e) {
-                $pdo->rollBack();
+                $conn->rollBack();
                 echo "Error: " . $e->getMessage();
             }
         } elseif ($_POST['action'] === 'edit') {
             // Begin transaction
-            $pdo->beginTransaction();
+            $conn->beginTransaction();
             try {
                 // First update the student
-                $stmt = $pdo->prepare("UPDATE student SET student_id = ?, lname = ?, fname = ?, mi = ? WHERE id = ?");
+                $stmt = $conn->prepare("UPDATE student SET student_id = ?, lname = ?, fname = ?, mi = ? WHERE id = ?");
                 $stmt->execute([
                     $_POST['student_id'],
                     $_POST['lname'],
@@ -47,37 +47,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ]);
                 
                 // Delete existing course relationships
-                $stmt = $pdo->prepare("DELETE FROM student_course WHERE student_id = ?");
+                $stmt = $conn->prepare("DELETE FROM student_course WHERE student_id = ?");
                 $stmt->execute([$_POST['id']]);
                 
                 // Insert new course relationships
                 if (isset($_POST['course_ids']) && is_array($_POST['course_ids'])) {
-                    $stmt = $pdo->prepare("INSERT INTO student_course (student_id, course_id) VALUES (?, ?)");
+                    $stmt = $conn->prepare("INSERT INTO student_course (student_id, course_id) VALUES (?, ?)");
                     foreach($_POST['course_ids'] as $courseId) {
                         $stmt->execute([$_POST['id'], $courseId]);
                     }
                 }
                 
-                $pdo->commit();
+                $conn->commit();
             } catch(Exception $e) {
-                $pdo->rollBack();
+                $conn->rollBack();
                 echo "Error: " . $e->getMessage();
             }
         } elseif ($_POST['action'] === 'delete') {
             // Begin transaction
-            $pdo->beginTransaction();
+            $conn->beginTransaction();
             try {
                 // First delete course relationships
-                $stmt = $pdo->prepare("DELETE FROM student_course WHERE student_id = ?");
+                $stmt = $conn->prepare("DELETE FROM student_course WHERE student_id = ?");
                 $stmt->execute([$_POST['id']]);
                 
                 // Then delete the student
-                $stmt = $pdo->prepare("DELETE FROM student WHERE id = ?");
+                $stmt = $conn->prepare("DELETE FROM student WHERE id = ?");
                 $stmt->execute([$_POST['id']]);
                 
-                $pdo->commit();
+                $conn->commit();
             } catch(Exception $e) {
-                $pdo->rollBack();
+                $conn->rollBack();
                 echo "Error: " . $e->getMessage();
             }
         }
@@ -85,11 +85,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 // Get all courses for dropdown
-$courses = $pdo->query("SELECT * FROM course")->fetchAll(PDO::FETCH_ASSOC);
+$courses = $conn->query("SELECT * FROM course")->fetchAll(PDO::FETCH_ASSOC);
 
 // Create student_course junction table if it doesn't exist
 try {
-    $pdo->exec("
+    $conn->exec("
         CREATE TABLE IF NOT EXISTS student_course (
             id INT AUTO_INCREMENT PRIMARY KEY,
             student_id INT NOT NULL,
@@ -104,7 +104,7 @@ try {
 }
 
 // Get all students with their courses
-$students = $pdo->query("
+$students = $conn->query("
     SELECT s.*, GROUP_CONCAT(c.course_name SEPARATOR ', ') as courses
     FROM student s 
     LEFT JOIN student_course sc ON s.id = sc.student_id
@@ -386,17 +386,45 @@ $students = $pdo->query("
             height: 100%;
             background-color: rgba(0, 0, 0, 0.5);
             z-index: 1000;
+            overflow: hidden;
+        }
+
+        .modal.show {
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         .modal-content {
             position: relative;
             background-color: #fff;
-            margin: 7% auto;
             padding: 30px;
-            width: 50%;
+            width: 60%;
+            max-width: 800px;
             border-radius: 10px;
             box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2);
             animation: modalFadeIn 0.3s ease;
+            max-height: 85vh;
+            overflow-y: auto;
+            margin: 0;
+        }
+
+        .modal-content::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .modal-content::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+
+        .modal-content::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 4px;
+        }
+
+        .modal-content::-webkit-scrollbar-thumb:hover {
+            background: #555;
         }
 
         @keyframes modalFadeIn {
@@ -419,6 +447,7 @@ $students = $pdo->query("
             color: #666;
             cursor: pointer;
             transition: color 0.3s;
+            z-index: 1001;
         }
 
         .close:hover {
@@ -430,16 +459,14 @@ $students = $pdo->query("
             color: #2c3e50;
             font-size: 22px;
             font-weight: 600;
+            padding-right: 40px;
         }
 
         @media (max-width: 768px) {
             .modal-content {
                 width: 90%;
-                margin: 10% auto;
-            }
-            
-            .sidebar {
-                width: 200px;
+                margin: 10px;
+                max-height: 90vh;
             }
         }
 
@@ -767,13 +794,13 @@ $students = $pdo->query("
 
         // When the user clicks on <span> (x), close the modal
         span.onclick = function() {
-            modal.style.display = "none";
+            modal.classList.remove('show');
         }
 
         // When the user clicks anywhere outside of the modal, close it
         window.onclick = function(event) {
             if (event.target == modal) {
-                modal.style.display = "none";
+                modal.classList.remove('show');
             }
         }
 
@@ -805,7 +832,7 @@ $students = $pdo->query("
                 .catch(error => console.error('Error fetching courses:', error));
             
             // Display the modal
-            modal.style.display = "block";
+            modal.classList.add('show');
         }
 
         function deleteStudent(id) {
