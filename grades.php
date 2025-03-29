@@ -1,5 +1,24 @@
 <?php
+session_start();
 require_once 'config/database.php';
+
+// Check if faculty is logged in
+if (!isset($_SESSION['email']) || !isset($_SESSION['faculty_id'])) {
+    header("Location: login.php");
+    exit();
+}
+
+// Get faculty information
+$stmt = $conn->prepare("SELECT * FROM faculty WHERE id = ?");
+$stmt->execute([$_SESSION['faculty_id']]);
+$faculty = $stmt->fetch(PDO::FETCH_ASSOC);
+
+// Initialize default values if faculty data is incomplete
+$faculty = array_merge([
+    'fname' => 'Faculty',
+    'lname' => 'Member',
+    'mi' => '',
+], $faculty);
 
 function calculateGrade($class_standing, $performance_task, $exam) {
     $class_standing_score = array_sum($class_standing) / 250 * 50 + 50;
@@ -128,7 +147,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $students = $conn->query("SELECT * FROM student ORDER BY lname")->fetchAll(PDO::FETCH_ASSOC);
 $courses = $conn->query("SELECT * FROM course ORDER BY course_name")->fetchAll(PDO::FETCH_ASSOC);
-$faculty = $conn->query("SELECT * FROM faculty ORDER BY lname")->fetchAll(PDO::FETCH_ASSOC);
+$faculty_list = $conn->query("SELECT * FROM faculty ORDER BY lname")->fetchAll(PDO::FETCH_ASSOC);
 $grades = $conn->query("SELECT g.*, s.student_id as student_number, 
     CONCAT(s.fname, ' ', s.mi, '. ', s.lname) as student_name,
     c.course_name, CONCAT(f.fname, ' ', f.mi, '. ', f.lname) as faculty_name
@@ -138,17 +157,19 @@ $grades = $conn->query("SELECT g.*, s.student_id as student_number,
 ?>
 
 
+
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Student Management - Grades</title>
+    <title>Faculty Dashboard</title>
     <!-- DataTables CSS -->
     <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.11.5/css/jquery.dataTables.min.css">
     <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/responsive/2.2.9/css/responsive.dataTables.min.css">
     <style>
-        * {
+                * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
@@ -253,13 +274,6 @@ $grades = $conn->query("SELECT g.*, s.student_id as student_number,
         .content h2 {
             margin-bottom: 20px;
             font-size: 22px;
-            color: #2c3e50;
-            font-weight: 600;
-        }
-
-        .content h3 {
-            margin: 20px 0 15px;
-            font-size: 18px;
             color: #2c3e50;
             font-weight: 600;
         }
@@ -501,39 +515,48 @@ $grades = $conn->query("SELECT g.*, s.student_id as student_number,
             background-color: #f5f6fa;
             color: #333 !important;
         }
+
+
+        
     </style>
 </head>
 <body>
     <header class="header">
-        <h1>Student Information System</h1>
+        <h1>Faculty Dashboard</h1>
         <div class="user-info">
-            <span class="user-name">Administrator</span>
+            <span class="user-name"><?php echo htmlspecialchars($faculty['fname'] . ' ' . $faculty['lname']); ?></span>
         </div>
     </header>
 
     <div class="main-container">
         <div class="sidebar">
-            <h2>Student Management</h2>
-            <div class="menu-item">
-                <a href="index.php">Dashboard</a>
-            </div>
-            <div class="menu-item">
-                <a href="students.php">Students</a>
-            </div>
-            <div class="menu-item">
-                <a href="faculty.php">Faculty</a>
-            </div>
-            <div class="menu-item">
-                <a href="courses.php">Courses</a>
-            </div>
+            <h2>Faculty Menu</h2>
             <div class="menu-item active">
-                <a href="grades.php">Grades</a>
+                <a href="facultyindex.php">Dashboard</a>
             </div>
             <div class="menu-item">
-                <a href="gwa.php">GWA</a>
+                <a href="#students">Student List</a>
+            </div>
+            <div class="menu-item">
+                <a href="#faculty">Faculty List</a>
+            </div>
+            <div class="menu-item">
+                <a href="#courses">My Courses</a>
+            </div>
+            <div class="menu-item">
+                <a href="grades.php">Grade Submission</a>
+            </div>
+            <div class="menu-item">
+                <a href="gwa.php">GWA Computation</a>
+            </div>
+            <div class="menu-item">
+                <a href="logout.php">Logout</a>
             </div>
         </div>
 
+        
+
+            
         <div class="content">
             <h1>Grade Management</h1>
             
@@ -571,7 +594,7 @@ $grades = $conn->query("SELECT g.*, s.student_id as student_number,
                             <label for="faculty_id">Faculty</label>
                             <select id="faculty_id" name="faculty_id" required>
                                 <option value="">Select Faculty</option>
-                                <?php foreach ($faculty as $member): ?>
+                                <?php foreach ($faculty_list as $member): ?>
                                     <option value="<?php echo $member['id']; ?>">
                                         <?php echo htmlspecialchars($member['lname'] . ', ' . $member['fname']); ?>
                                     </option>
@@ -730,7 +753,7 @@ $grades = $conn->query("SELECT g.*, s.student_id as student_number,
                         <label for="edit_faculty_id">Faculty</label>
                         <select id="edit_faculty_id" name="faculty_id" required>
                             <option value="">Select Faculty</option>
-                            <?php foreach ($faculty as $member): ?>
+                            <?php foreach ($faculty_list as $member): ?>
                                 <option value="<?php echo $member['id']; ?>">
                                     <?php echo htmlspecialchars($member['lname'] . ', ' . $member['fname']); ?>
                                 </option>

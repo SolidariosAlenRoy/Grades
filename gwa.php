@@ -1,5 +1,24 @@
 <?php
+session_start();
 require_once 'config/database.php';
+
+// Check if faculty is logged in
+if (!isset($_SESSION['email']) || !isset($_SESSION['faculty_id'])) {
+    header("Location: login.php");
+    exit();
+}
+
+// Get faculty information
+$stmt = $conn->prepare("SELECT * FROM faculty WHERE id = ?");
+$stmt->execute([$_SESSION['faculty_id']]);
+$faculty = $stmt->fetch(PDO::FETCH_ASSOC);
+
+// Initialize default values if faculty data is incomplete
+$faculty = array_merge([
+    'fname' => 'Faculty',
+    'lname' => 'Member',
+    'mi' => '',
+], $faculty);
 
 function getGrade($grade) {
     if ($grade >= 97.50 && $grade <= 100) return "1.00";
@@ -55,14 +74,19 @@ if (isset($_GET['student_id'])) {
 }
 ?>
 
+
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Student Management - GWA</title>
+    <title>Faculty Dashboard</title>
+    <!-- DataTables CSS -->
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.11.5/css/jquery.dataTables.min.css">
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/responsive/2.2.9/css/responsive.dataTables.min.css">
     <style>
-        * {
+                * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
@@ -151,6 +175,27 @@ if (isset($_GET['student_id'])) {
             font-size: 15px;
         }
 
+        .content {
+            flex: 1;
+            padding: 25px;
+            overflow-y: auto;
+        }
+
+        .content h1 {
+            margin-bottom: 25px;
+            font-size: 26px;
+            color: #2c3e50;
+            font-weight: 600;
+        }
+
+        .content h2 {
+            margin-bottom: 20px;
+            font-size: 22px;
+            color: #2c3e50;
+            font-weight: 600;
+        }
+
+        
         .content {
             flex: 1;
             padding: 25px;
@@ -412,39 +457,48 @@ if (isset($_GET['student_id'])) {
                 width: 200px;
             }
         }
+
+
+        
     </style>
 </head>
 <body>
     <header class="header">
-        <h1>Student Information System</h1>
+        <h1>Faculty Dashboard</h1>
         <div class="user-info">
-            <span class="user-name">Administrator</span>
+            <span class="user-name"><?php echo htmlspecialchars($faculty['fname'] . ' ' . $faculty['lname']); ?></span>
         </div>
     </header>
 
     <div class="main-container">
         <div class="sidebar">
-            <h2>Student Management</h2>
-            <div class="menu-item">
-                <a href="index.php">Dashboard</a>
-            </div>
-            <div class="menu-item">
-                <a href="students.php">Students</a>
-            </div>
-            <div class="menu-item">
-                <a href="faculty.php">Faculty</a>
-            </div>
-            <div class="menu-item">
-                <a href="courses.php">Courses</a>
-            </div>
-            <div class="menu-item">
-                <a href="grades.php">Grades</a>
-            </div>
+            <h2>Faculty Menu</h2>
             <div class="menu-item active">
-                <a href="gwa.php">GWA</a>
+                <a href="facultyindex.php">Dashboard</a>
+            </div>
+            <div class="menu-item">
+                <a href="#students">Student List</a>
+            </div>
+            <div class="menu-item">
+                <a href="#faculty">Faculty List</a>
+            </div>
+            <div class="menu-item">
+                <a href="#courses">My Courses</a>
+            </div>
+            <div class="menu-item">
+                <a href="grades.php">Grade Submission</a>
+            </div>
+            <div class="menu-item">
+                <a href="gwa.php">GWA Computation</a>
+            </div>
+            <div class="menu-item">
+                <a href="logout.php">Logout</a>
             </div>
         </div>
 
+        
+
+            
         <div class="content">
             <h1>General Weighted Average (GWA)</h1>
             

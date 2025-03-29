@@ -89,6 +89,18 @@ CREATE TABLE `student` (
   `course_id` int(11) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `deadlines`
+--
+
+CREATE TABLE IF NOT EXISTS deadlines (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    deadline_date DATETIME NOT NULL,
+    created_at DATETIME NOT NULL
+);
+
 --
 -- Indexes for dumped tables
 --
@@ -180,3 +192,30 @@ COMMIT;
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
 /*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
+
+-- Create database if not exists
+CREATE DATABASE IF NOT EXISTS student_management;
+USE student_management;
+
+-- Create users table
+CREATE TABLE IF NOT EXISTS users (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    email VARCHAR(255) UNIQUE NOT NULL,
+    password VARCHAR(255) NOT NULL,
+    user_type ENUM('student', 'faculty', 'admin') NOT NULL,
+    student_id VARCHAR(2) UNIQUE,
+    admin_id VARCHAR(1) UNIQUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Insert default admin account (Email: admin@example.com, Password: admin123)
+INSERT INTO users (email, password, user_type, admin_id) VALUES 
+('admin@example.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'admin', '1');
+
+-- Insert sample faculty account (Email: faculty@example.com, Password: faculty123)
+INSERT INTO users (email, password, user_type) VALUES 
+('faculty@example.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'faculty');
+
+-- Insert sample student account (Email: student@example.com, Password: student123)
+INSERT INTO users (email, password, user_type, student_id) VALUES 
+('student@example.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'student', '12');
