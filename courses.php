@@ -385,8 +385,17 @@ $courses = $conn->query("SELECT * FROM course")->fetchAll(PDO::FETCH_ASSOC);
             <div class="menu-item">
                 <a href="faculty.php">Faculty</a>
             </div>
-            <div class="menu-item active">
+            <div class="menu-item">
                 <a href="courses.php">Courses</a>
+            </div>
+            <div class="menu-item">
+                <a href="deadline.php">Deadline</a>
+            </div>
+            <div class="menu-item">
+                <a href="create_user.php">Create Account</a>
+            </div>
+            <div class="menu-item">
+                <a href="logout.php">Logout</a>
             </div>
         </div>
 

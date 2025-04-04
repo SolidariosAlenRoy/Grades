@@ -248,14 +248,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             Already have an account? <a href="login.php">Login here</a>
         </div>
 
-        <div class="register-info">
-            <p>Registration Information:</p>
-            <ul>
-                <li>• Students: Use your 2-digit Student ID (e.g., 12)</li>
-                <li>• Faculty: Use your email address (e.g., faculty@example.com)</li>
-                <li>• Admin: Use your 1-digit Admin ID (e.g., 1)</li>
-            </ul>
-        </div>
+        
     </div>
 </body>
 </html> 

@@ -238,14 +238,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             Don't have an account? <a href="register.php">Register here</a>
         </div>
 
-        <div class="login-info">
-            <p>Login Information:</p>
-            <ul>
-                <li>• Admin: Use non-Gmail account</li>
-                <li>• Faculty: Use Gmail account (e.g., example@gmail.com)</li>
-                <li>• Student: Use non-Gmail account</li>
-            </ul>
-        </div>
+        
     </div>
 </body>
 </html> 

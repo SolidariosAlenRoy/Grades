@@ -61,34 +61,116 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f5f6fa;
+            display: flex;
+            flex-direction: column;
             min-height: 100vh;
-            padding: 20px;
-        }
-
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-            background-color: white;
-            padding: 40px;
-            border-radius: 10px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            background-color: #f5f6fa;
         }
 
         .header {
-            text-align: center;
-            margin-bottom: 30px;
+            background-color: #3498db;
+            color: white;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
         }
 
         .header h1 {
-            color: #2c3e50;
             font-size: 24px;
-            margin-bottom: 10px;
+            font-weight: 600;
         }
 
-        .header p {
-            color: #7f8c8d;
-            font-size: 14px;
+        .user-info {
+            display: flex;
+            align-items: center;
+        }
+
+        .user-info .user-name {
+            margin-right: 10px;
+        }
+
+        .main-container {
+            display: flex;
+            flex: 1;
+        }
+
+        .sidebar {
+            width: 250px;
+            background-color: #2c3e50;
+            height: calc(100vh - 62px);
+            color: white;
+            padding: 20px 0;
+            position: sticky;
+            top: 62px;
+            overflow-y: auto;
+        }
+
+        .sidebar h2 {
+            padding: 0 20px;
+            margin-bottom: 20px;
+            font-size: 18px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+
+        .menu-item {
+            padding: 12px 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+            border-left: 4px solid transparent;
+        }
+
+        .menu-item:hover {
+            background-color: #34495e;
+            border-left: 4px solid #3498db;
+        }
+
+        .menu-item.active {
+            background-color: #34495e;
+            border-left: 4px solid #3498db;
+        }
+
+        .menu-item a {
+            color: white;
+            text-decoration: none;
+            display: block;
+            font-size: 15px;
+        }
+
+        .content {
+            flex: 1;
+            padding: 25px;
+            overflow-y: auto;
+        }
+
+        .content h1 {
+            margin-bottom: 25px;
+            font-size: 26px;
+            color: #2c3e50;
+            font-weight: 600;
+        }
+
+        .form-container {
+            background-color: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .form-container h2 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            font-size: 20px;
+            font-weight: 600;
         }
 
         .form-group {
@@ -104,131 +186,170 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         .form-group input, .form-group select {
             width: 100%;
-            padding: 12px;
+            padding: 10px;
             border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 14px;
+            border-radius: 6px;
+            font-family: inherit;
+            font-size: 15px;
             transition: border-color 0.3s;
         }
 
         .form-group input:focus, .form-group select:focus {
-            outline: none;
             border-color: #3498db;
+            outline: none;
         }
 
-        .btn-create {
-            width: 100%;
-            padding: 12px;
+        .btn {
             background-color: #3498db;
             color: white;
+            padding: 12px 25px;
             border: none;
-            border-radius: 4px;
-            font-size: 16px;
+            border-radius: 6px;
             cursor: pointer;
+            font-size: 16px;
+            font-weight: 500;
             transition: background-color 0.3s;
+            width: 100%;
         }
 
-        .btn-create:hover {
+        .btn:hover {
             background-color: #2980b9;
         }
 
         .error-message {
             background-color: #fee2e2;
+            border: 1px solid #ef4444;
             color: #dc2626;
-            padding: 10px;
-            border-radius: 4px;
+            padding: 15px;
+            border-radius: 6px;
             margin-bottom: 20px;
             font-size: 14px;
         }
 
         .success-message {
             background-color: #dcfce7;
+            border: 1px solid #22c55e;
             color: #16a34a;
-            padding: 10px;
-            border-radius: 4px;
+            padding: 15px;
+            border-radius: 6px;
             margin-bottom: 20px;
             font-size: 14px;
         }
 
-        .back-link {
-            display: inline-block;
-            margin-top: 20px;
-            color: #3498db;
-            text-decoration: none;
-        }
-
-        .back-link:hover {
-            text-decoration: underline;
-        }
-
         .id-fields {
             display: none;
+            opacity: 0;
+            transition: opacity 0.3s ease;
         }
 
         .id-fields.show {
             display: block;
+            opacity: 1;
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 200px;
+            }
+            
+            .form-container {
+                margin: 20px;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>Create User Account</h1>
-            <p>Admin panel for creating new user accounts</p>
+    <header class="header">
+        <h1>Student Information System</h1>
+        <div class="user-info">
+            <span class="user-name">Administrator</span>
+        </div>
+    </header>
+
+    <div class="main-container">
+        <div class="sidebar">
+            <h2>Student Management</h2>
+            <div class="menu-item">
+                <a href="index.php">Dashboard</a>
+            </div>
+            <div class="menu-item">
+                <a href="students.php">Students</a>
+            </div>
+            <div class="menu-item">
+                <a href="faculty.php">Faculty</a>
+            </div>
+            <div class="menu-item">
+                <a href="courses.php">Courses</a>
+            </div>
+            <div class="menu-item">
+                <a href="deadline.php">Deadline</a>
+            </div>
+            <div class="menu-item">
+                <a href="create_user.php">Create Account</a>
+            </div>
+            <div class="menu-item">
+                <a href="logout.php">Logout</a>
+            </div>
         </div>
 
-        <?php if ($error): ?>
-            <div class="error-message">
-                <?php echo htmlspecialchars($error); ?>
+        <div class="content">
+            <h1>Create User Account</h1>
+            
+            <div class="form-container">
+                <h2>New User Registration</h2>
+                
+                <?php if ($error): ?>
+                    <div class="error-message">
+                        <?php echo htmlspecialchars($error); ?>
+                    </div>
+                <?php endif; ?>
+
+                <?php if ($success): ?>
+                    <div class="success-message">
+                        <?php echo htmlspecialchars($success); ?>
+                    </div>
+                <?php endif; ?>
+
+                <form method="POST" action="">
+                    <div class="form-group">
+                        <label for="user_type">User Type</label>
+                        <select id="user_type" name="user_type" required>
+                            <option value="">Select user type</option>
+                            <option value="student">Student</option>
+                            <option value="faculty">Faculty</option>
+                            <option value="admin">Admin</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="email">Email Address</label>
+                        <input type="email" id="email" name="email" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="password">Password</label>
+                        <input type="password" id="password" name="password" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="confirm_password">Confirm Password</label>
+                        <input type="password" id="confirm_password" name="confirm_password" required>
+                    </div>
+
+                    <div id="student_id_field" class="form-group id-fields">
+                        <label for="student_id">Student ID (2 digits)</label>
+                        <input type="text" id="student_id" name="student_id" pattern="[0-9]{2}" maxlength="2">
+                    </div>
+
+                    <div id="admin_id_field" class="form-group id-fields">
+                        <label for="admin_id">Admin ID (1 digit)</label>
+                        <input type="text" id="admin_id" name="admin_id" pattern="[0-9]{1}" maxlength="1">
+                    </div>
+
+                    <button type="submit" class="btn">Create Account</button>
+                </form>
             </div>
-        <?php endif; ?>
-
-        <?php if ($success): ?>
-            <div class="success-message">
-                <?php echo htmlspecialchars($success); ?>
-            </div>
-        <?php endif; ?>
-
-        <form method="POST" action="">
-            <div class="form-group">
-                <label for="user_type">User Type</label>
-                <select id="user_type" name="user_type" required>
-                    <option value="">Select user type</option>
-                    <option value="student">Student</option>
-                    <option value="faculty">Faculty</option>
-                    <option value="admin">Admin</option>
-                </select>
-            </div>
-
-            <div class="form-group">
-                <label for="email">Email Address</label>
-                <input type="email" id="email" name="email" required>
-            </div>
-
-            <div class="form-group">
-                <label for="password">Password</label>
-                <input type="password" id="password" name="password" required>
-            </div>
-
-            <div class="form-group">
-                <label for="confirm_password">Confirm Password</label>
-                <input type="password" id="confirm_password" name="confirm_password" required>
-            </div>
-
-            <div id="student_id_field" class="form-group id-fields">
-                <label for="student_id">Student ID (2 digits)</label>
-                <input type="text" id="student_id" name="student_id" pattern="[0-9]{2}" maxlength="2">
-            </div>
-
-            <div id="admin_id_field" class="form-group id-fields">
-                <label for="admin_id">Admin ID (1 digit)</label>
-                <input type="text" id="admin_id" name="admin_id" pattern="[0-9]{1}" maxlength="1">
-            </div>
-
-            <button type="submit" class="btn-create">Create Account</button>
-        </form>
-
-        <a href="index.php" class="back-link">← Back to Dashboard</a>
+        </div>
     </div>
 
     <script>

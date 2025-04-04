@@ -374,7 +374,7 @@ if ($faculty['courses'] && $faculty['courses'] !== 'Not Assigned') {
                         </div>
             <div class="menu-item">
                 <a href="logout.php">Logout</a>
-                </div>
+            </div>
         </div>
 
         <div class="content">
@@ -395,7 +395,7 @@ if ($faculty['courses'] && $faculty['courses'] !== 'Not Assigned') {
                         <div class="stat-card">
                             <h3>My Courses</h3>
                     <div class="number"><?php echo count($courses); ?></div>
-                </div>
+                    </div>
                 </div>
 
             <div id="students" class="table-container">

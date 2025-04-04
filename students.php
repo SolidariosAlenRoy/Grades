@@ -606,12 +606,12 @@ $students = $conn->query("
     </header>
 
     <div class="main-container">
-        <div class="sidebar">
+    <div class="sidebar">
             <h2>Student Management</h2>
             <div class="menu-item">
                 <a href="index.php">Dashboard</a>
             </div>
-            <div class="menu-item active">
+            <div class="menu-item">
                 <a href="students.php">Students</a>
             </div>
             <div class="menu-item">
@@ -619,6 +619,15 @@ $students = $conn->query("
             </div>
             <div class="menu-item">
                 <a href="courses.php">Courses</a>
+            </div>
+            <div class="menu-item">
+                <a href="deadline.php">Deadline</a>
+            </div>
+            <div class="menu-item">
+                <a href="create_user.php">Create Account</a>
+            </div>
+            <div class="menu-item">
+                <a href="logout.php">Logout</a>
             </div>
         </div>
 

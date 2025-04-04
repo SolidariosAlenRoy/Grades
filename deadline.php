@@ -6,15 +6,23 @@ require_once 'config/database.php';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['action'])) {
         if ($_POST['action'] === 'set_deadline') {
-            $_SESSION['deadline'] = $_POST['deadline'];
-            // Store deadline in database
-            $stmt = $conn->prepare("INSERT INTO deadlines (deadline_date, created_at) VALUES (?, NOW())");
-            $stmt->execute([$_POST['deadline']]);
+            // Validate deadline date
+            $deadline_date = new DateTime($_POST['deadline']);
+            $now = new DateTime();
+            
+            if ($deadline_date <= $now) {
+                $_SESSION['error'] = "Deadline must be set to a future date and time.";
+            } else {
+                // Store deadline in database
+                $stmt = $conn->prepare("INSERT INTO deadlines (deadline_date, created_at) VALUES (?, NOW())");
+                $stmt->execute([$_POST['deadline']]);
+                $_SESSION['success'] = "Deadline has been set successfully.";
+            }
         } elseif ($_POST['action'] === 'clear_deadline') {
-            unset($_SESSION['deadline']);
             // Clear deadline from database
-            $stmt = $conn->prepare("DELETE FROM deadlines ORDER BY created_at DESC LIMIT 1");
+            $stmt = $conn->prepare("DELETE FROM deadlines");
             $stmt->execute();
+            $_SESSION['success'] = "Deadline has been cleared successfully.";
         }
     }
 }
@@ -23,6 +31,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $stmt = $conn->query("SELECT deadline_date FROM deadlines ORDER BY created_at DESC LIMIT 1");
 $deadline = $stmt->fetch(PDO::FETCH_ASSOC);
 $deadline = $deadline ? $deadline['deadline_date'] : null;
+
+// Check if deadline has expired
+$is_expired = false;
+if ($deadline) {
+    $deadline_date = new DateTime($deadline);
+    $now = new DateTime();
+    $is_expired = $now > $deadline_date;
+}
 ?>
 
 <!DOCTYPE html>
@@ -248,6 +264,33 @@ $deadline = $deadline ? $deadline['deadline_date'] : null;
                 margin: 20px;
             }
         }
+
+        .alert {
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+        }
+
+        .alert-danger {
+            background-color: #fee2e2;
+            border: 1px solid #ef4444;
+            color: #dc2626;
+        }
+
+        .alert-success {
+            background-color: #dcfce7;
+            border: 1px solid #22c55e;
+            color: #16a34a;
+        }
+
+        .countdown-container.expired {
+            background-color: #fee2e2;
+            border: 1px solid #ef4444;
+        }
+
+        .countdown-container.expired .countdown {
+            color: #dc2626;
+        }
     </style>
 </head>
 <body>
@@ -274,13 +317,13 @@ $deadline = $deadline ? $deadline['deadline_date'] : null;
                 <a href="courses.php">Courses</a>
             </div>
             <div class="menu-item">
-                <a href="grades.php">Grades</a>
+                <a href="deadline.php">Deadline</a>
             </div>
             <div class="menu-item">
-                <a href="gwa.php">GWA</a>
+                <a href="create_user.php">Create Account</a>
             </div>
-            <div class="menu-item active">
-                <a href="deadline.php">Deadline</a>
+            <div class="menu-item">
+                <a href="logout.php">Logout</a>
             </div>
         </div>
 
@@ -289,11 +332,30 @@ $deadline = $deadline ? $deadline['deadline_date'] : null;
             
             <div class="form-container">
                 <h2>Set Grade Submission Deadline</h2>
+                <?php if (isset($_SESSION['error'])): ?>
+                    <div class="alert alert-danger">
+                        <?php 
+                        echo $_SESSION['error'];
+                        unset($_SESSION['error']);
+                        ?>
+                    </div>
+                <?php endif; ?>
+                
+                <?php if (isset($_SESSION['success'])): ?>
+                    <div class="alert alert-success">
+                        <?php 
+                        echo $_SESSION['success'];
+                        unset($_SESSION['success']);
+                        ?>
+                    </div>
+                <?php endif; ?>
+
                 <form method="POST">
                     <input type="hidden" name="action" value="set_deadline">
                     <div class="form-group">
                         <label for="deadline">Select Deadline:</label>
-                        <input type="datetime-local" id="deadline" name="deadline" required>
+                        <input type="datetime-local" id="deadline" name="deadline" required 
+                               min="<?php echo date('Y-m-d\TH:i'); ?>">
                     </div>
                     <div class="button-group">
                         <button type="submit" class="btn">Set Deadline</button>
@@ -302,11 +364,11 @@ $deadline = $deadline ? $deadline['deadline_date'] : null;
             </div>
 
             <?php if ($deadline): ?>
-                <div class="countdown-container">
-                    <h2>Time Remaining</h2>
+                <div class="countdown-container <?php echo $is_expired ? 'expired' : ''; ?>">
+                    <h2>Current Deadline</h2>
                     <div class="countdown" id="countdown"></div>
                     <div class="deadline-info">
-                        Deadline: <?php echo date('F j, Y g:i A', strtotime($deadline)); ?>
+                        Deadline: <?php echo (new DateTime($deadline))->format('F j, Y g:i A'); ?>
                     </div>
                     <div class="button-group">
                         <form method="POST" style="display: inline;">
@@ -318,17 +380,17 @@ $deadline = $deadline ? $deadline['deadline_date'] : null;
 
                 <script>
                     function updateCountdown() {
-                        let deadline = new Date("<?php echo $deadline; ?>").getTime();
-                        let now = new Date().getTime();
-                        let timeLeft = deadline - now;
+                        const deadline = new Date("<?php echo $deadline; ?>").getTime();
+                        const now = new Date().getTime();
+                        const timeLeft = deadline - now;
 
                         const countdownElement = document.getElementById("countdown");
                         
                         if (timeLeft > 0) {
-                            let days = Math.floor(timeLeft / (1000 * 60 * 60 * 24));
-                            let hours = Math.floor((timeLeft % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-                            let minutes = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
-                            let seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
+                            const days = Math.floor(timeLeft / (1000 * 60 * 60 * 24));
+                            const hours = Math.floor((timeLeft % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                            const minutes = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
+                            const seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
                             
                             countdownElement.innerHTML = `${days}d ${hours}h ${minutes}m ${seconds}s`;
                             countdownElement.classList.remove('expired');

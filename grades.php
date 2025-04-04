@@ -20,6 +20,19 @@ $faculty = array_merge([
     'mi' => '',
 ], $faculty);
 
+// Get current deadline
+$stmt = $conn->query("SELECT deadline_date FROM deadlines ORDER BY created_at DESC LIMIT 1");
+$deadline = $stmt->fetch(PDO::FETCH_ASSOC);
+$deadline = $deadline ? $deadline['deadline_date'] : null;
+
+// Check if deadline has expired
+$is_expired = false;
+if ($deadline) {
+    $deadline_date = new DateTime($deadline);
+    $now = new DateTime();
+    $is_expired = $now > $deadline_date;
+}
+
 function calculateGrade($class_standing, $performance_task, $exam) {
     $class_standing_score = array_sum($class_standing) / 250 * 50 + 50;
     $performance_task_score = array_sum($performance_task) / 200 * 50 + 50;
@@ -516,8 +529,42 @@ $grades = $conn->query("SELECT g.*, s.student_id as student_number,
             color: #333 !important;
         }
 
+        .deadline-info {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
 
-        
+        .deadline-info.expired {
+            background-color: #fee2e2;
+            border: 1px solid #ef4444;
+        }
+
+        .deadline-info h3 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+
+        .deadline-info p {
+            margin: 5px 0;
+            color: #4b5563;
+        }
+
+        .deadline-info.expired p {
+            color: #dc2626;
+        }
+
+        button.disabled {
+            background-color: #9ca3af;
+            cursor: not-allowed;
+        }
+
+        button.disabled:hover {
+            background-color: #9ca3af;
+        }
+
     </style>
 </head>
 <body>
@@ -560,6 +607,18 @@ $grades = $conn->query("SELECT g.*, s.student_id as student_number,
         <div class="content">
             <h1>Grade Management</h1>
             
+            <?php if ($deadline): ?>
+                <div class="deadline-info <?php echo $is_expired ? 'expired' : ''; ?>">
+                    <h3>Grade Submission Deadline</h3>
+                    <p>Deadline: <?php echo (new DateTime($deadline))->format('F j, Y g:i A'); ?></p>
+                    <?php if ($is_expired): ?>
+                        <p><strong>Warning: The deadline has passed! Grade submission is no longer allowed.</strong></p>
+                    <?php else: ?>
+                        <p>Time remaining: <span id="countdown"></span></p>
+                    <?php endif; ?>
+                </div>
+            <?php endif; ?>
+
             <div class="form-container">
                 <h2>Add New Grade</h2>
                 <form method="POST">
@@ -671,7 +730,9 @@ $grades = $conn->query("SELECT g.*, s.student_id as student_number,
                         </div>
                     </div>
 
-                    <button type="submit" class="btn">Add Grade</button>
+                    <button type="submit" class="btn" <?php echo $is_expired ? 'disabled' : ''; ?>>
+                        Add Grade
+                    </button>
                 </form>
             </div>
 
@@ -897,6 +958,33 @@ $grades = $conn->query("SELECT g.*, s.student_id as student_number,
                 modal.style.display = "none";
             }
         }
+
+        function updateCountdown() {
+            const deadline = new Date("<?php echo $deadline; ?>").getTime();
+            const now = new Date().getTime();
+            const timeLeft = deadline - now;
+
+            const countdownElement = document.getElementById("countdown");
+            
+            if (timeLeft > 0) {
+                const days = Math.floor(timeLeft / (1000 * 60 * 60 * 24));
+                const hours = Math.floor((timeLeft % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                const minutes = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
+                const seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
+                
+                countdownElement.innerHTML = `${days}d ${hours}h ${minutes}m ${seconds}s`;
+            } else {
+                countdownElement.innerHTML = "Deadline has passed!";
+                document.querySelectorAll('button[type="submit"]').forEach(button => {
+                    button.disabled = true;
+                    button.classList.add('disabled');
+                });
+            }
+        }
+
+        // Update countdown every second
+        setInterval(updateCountdown, 1000);
+        updateCountdown();
     </script>
 </body>
 </html> 

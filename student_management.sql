@@ -197,25 +197,38 @@ COMMIT;
 CREATE DATABASE IF NOT EXISTS student_management;
 USE student_management;
 
--- Create users table
-CREATE TABLE IF NOT EXISTS users (
+-- Create student table
+CREATE TABLE IF NOT EXISTS student (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    email VARCHAR(255) UNIQUE NOT NULL,
+    student_id VARCHAR(2) UNIQUE NOT NULL,
     password VARCHAR(255) NOT NULL,
-    user_type ENUM('student', 'faculty', 'admin') NOT NULL,
-    student_id VARCHAR(2) UNIQUE,
-    admin_id VARCHAR(1) UNIQUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Insert default admin account (Email: admin@example.com, Password: admin123)
-INSERT INTO users (email, password, user_type, admin_id) VALUES 
-('admin@example.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'admin', '1');
+-- Create faculty table
+CREATE TABLE IF NOT EXISTS faculty (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    email VARCHAR(255) UNIQUE NOT NULL,
+    password VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Create admin table
+CREATE TABLE IF NOT EXISTS admin (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    admin_id VARCHAR(1) UNIQUE NOT NULL,
+    password VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Insert default admin account (ID: 1, Password: admin123)
+INSERT INTO admin (admin_id, password) VALUES 
+('1', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi');
 
 -- Insert sample faculty account (Email: faculty@example.com, Password: faculty123)
-INSERT INTO users (email, password, user_type) VALUES 
-('faculty@example.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'faculty');
+INSERT INTO faculty (email, password) VALUES 
+('faculty@example.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi');
 
--- Insert sample student account (Email: student@example.com, Password: student123)
-INSERT INTO users (email, password, user_type, student_id) VALUES 
-('student@example.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'student', '12');
+-- Insert sample student account (ID: 12, Password: student123)
+INSERT INTO student (student_id, password) VALUES 
+('12', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi');
